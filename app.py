@@ -7,10 +7,15 @@ import calendar
 import csv
 import io
 
-app = Flask(__name__)
+# Get the directory of the current script for absolute paths
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+app = Flask(__name__, 
+            template_folder=os.path.join(basedir, 'templates'),
+            static_folder=os.path.join(basedir, 'static'))
 app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET', 'dev-secret-key')
 
-DATABASE = 'finance.db'
+DATABASE = os.path.join(basedir, 'finance.db')
 
 def init_db():
     """Initialize the SQLite database"""
@@ -458,7 +463,7 @@ def import_csv():
         return jsonify({'error': 'No file uploaded'}), 400
     
     file = request.files['file']
-    if file.filename == '':
+    if not file.filename or file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
     if not file.filename.lower().endswith('.csv'):
