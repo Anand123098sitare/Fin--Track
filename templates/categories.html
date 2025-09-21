@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Categories - FinTrack{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">Manage Categories</h2>
+    </div>
+</div>
+
+<!-- Add New Category -->
+<div class="row mb-4">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Add New Category</h5>
+            </div>
+            <div class="card-body">
+                <form id="add-category-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="category-name" class="form-label">Category Name</label>
+                                <input type="text" class="form-control" id="category-name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="category-type" class="form-label">Type</label>
+                                <select class="form-select" id="category-type" required>
+                                    <option value="">Select type...</option>
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Add Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Categories Lists -->
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Income Categories</h5>
+                <span class="badge bg-success" id="income-count">0</span>
+            </div>
+            <div class="card-body">
+                <div id="income-categories-list">
+                    <div class="text-center text-muted py-3">
+                        Loading categories...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Expense Categories</h5>
+                <span class="badge bg-danger" id="expense-count">0</span>
+            </div>
+            <div class="card-body">
+                <div id="expense-categories-list">
+                    <div class="text-center text-muted py-3">
+                        Loading categories...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Toast Messages -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="success-toast" class="toast align-items-center text-bg-success border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body" id="success-message">
+                Category added successfully!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+    <div id="error-toast" class="toast align-items-center text-bg-danger border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body" id="error-message">
+                An error occurred. Please try again.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Initialize category management page
+document.addEventListener('DOMContentLoaded', function() {
+    loadCategoriesPage();
+    initializeCategoryForm();
+});
+
+function initializeCategoriesPage() {
+    initializeCategoryForm();
+    loadCategoriesPage();
+}
+
+function loadCategoriesPage() {
+    fetch('/api/categories')
+        .then(response => response.json())
+        .then(data => {
+            displayCategoriesList(data);
+        })
+        .catch(error => {
+            console.error('Error loading categories:', error);
+        });
+}
+
+function displayCategoriesList(categoriesData) {
+    const incomeList = document.getElementById('income-categories-list');
+    const expenseList = document.getElementById('expense-categories-list');
+    const incomeCount = document.getElementById('income-count');
+    const expenseCount = document.getElementById('expense-count');
+    
+    const incomeCategories = categoriesData.filter(cat => cat.type === 'income');
+    const expenseCategories = categoriesData.filter(cat => cat.type === 'expense');
+    
+    incomeCount.textContent = incomeCategories.length;
+    expenseCount.textContent = expenseCategories.length;
+    
+    // Display income categories
+    if (incomeCategories.length === 0) {
+        incomeList.innerHTML = '<div class="text-center text-muted py-3">No income categories found</div>';
+    } else {
+        // Clear and rebuild with proper DOM append
+        incomeList.innerHTML = '';
+        incomeCategories.forEach(category => {
+            const categoryNameDiv = document.createElement('div');
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'fw-medium';
+            nameSpan.textContent = category.name; // Safe text content instead of innerHTML
+            
+            const badge = document.createElement('span');
+            badge.className = category.is_custom ? 'badge bg-light text-dark ms-2' : 'badge bg-secondary ms-2';
+            badge.textContent = category.is_custom ? 'Custom' : 'Default';
+            
+            categoryNameDiv.appendChild(nameSpan);
+            categoryNameDiv.appendChild(badge);
+            
+            const containerDiv = document.createElement('div');
+            containerDiv.className = 'd-flex justify-content-between align-items-center py-2 border-bottom';
+            containerDiv.appendChild(categoryNameDiv);
+            
+            if (category.is_custom) {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'btn btn-sm btn-outline-danger';
+                deleteBtn.onclick = () => deleteCategory(category.id, category.name);
+                deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+                containerDiv.appendChild(deleteBtn);
+            }
+            
+            incomeList.appendChild(containerDiv); // Proper DOM append preserves event handlers
+        });
+    }
+    
+    // Display expense categories
+    if (expenseCategories.length === 0) {
+        expenseList.innerHTML = '<div class="text-center text-muted py-3">No expense categories found</div>';
+    } else {
+        // Clear and rebuild with proper DOM append
+        expenseList.innerHTML = '';
+        expenseCategories.forEach(category => {
+            const categoryNameDiv = document.createElement('div');
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'fw-medium';
+            nameSpan.textContent = category.name; // Safe text content instead of innerHTML
+            
+            const badge = document.createElement('span');
+            badge.className = category.is_custom ? 'badge bg-light text-dark ms-2' : 'badge bg-secondary ms-2';
+            badge.textContent = category.is_custom ? 'Custom' : 'Default';
+            
+            categoryNameDiv.appendChild(nameSpan);
+            categoryNameDiv.appendChild(badge);
+            
+            const containerDiv = document.createElement('div');
+            containerDiv.className = 'd-flex justify-content-between align-items-center py-2 border-bottom';
+            containerDiv.appendChild(categoryNameDiv);
+            
+            if (category.is_custom) {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'btn btn-sm btn-outline-danger';
+                deleteBtn.onclick = () => deleteCategory(category.id, category.name);
+                deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+                containerDiv.appendChild(deleteBtn);
+            }
+            
+            expenseList.appendChild(containerDiv); // Proper DOM append preserves event handlers
+        });
+    }
+}
+
+function initializeCategoryForm() {
+    const form = document.getElementById('add-category-form');
+    form.addEventListener('submit', handleCategorySubmit);
+}
+
+function handleCategorySubmit(e) {
+    e.preventDefault();
+    
+    const categoryData = {
+        name: document.getElementById('category-name').value.trim(),
+        type: document.getElementById('category-type').value
+    };
+    
+    if (!categoryData.name || !categoryData.type) {
+        showErrorToast('Please fill in all fields');
+        return;
+    }
+    
+    fetch('/api/categories', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(categoryData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessToast('Category added successfully');
+            document.getElementById('add-category-form').reset();
+            loadCategoriesPage();
+        } else {
+            showErrorToast(data.error || 'Error adding category');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding category:', error);
+        showErrorToast('Error adding category');
+    });
+}
+
+function deleteCategory(categoryId, categoryName) {
+    if (confirm(`Are you sure you want to delete the category "${categoryName}"?`)) {
+        fetch(`/api/categories/${categoryId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessToast('Category deleted successfully');
+                loadCategoriesPage();
+            } else {
+                showErrorToast(data.error || 'Error deleting category');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting category:', error);
+            showErrorToast('Error deleting category');
+        });
+    }
+}
+
+function showSuccessToast(message) {
+    const successMessageEl = document.getElementById('success-message');
+    if (successMessageEl) {
+        successMessageEl.textContent = message;
+    }
+    const toast = new bootstrap.Toast(document.getElementById('success-toast'));
+    toast.show();
+}
+
+function showErrorToast(message) {
+    const errorMessageEl = document.getElementById('error-message');
+    if (errorMessageEl) {
+        errorMessageEl.textContent = message;
+    }
+    const toast = new bootstrap.Toast(document.getElementById('error-toast'));
+    toast.show();
+}
+</script>
+{% endblock %}

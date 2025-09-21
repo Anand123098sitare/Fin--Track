@@ -4,29 +4,66 @@
 let monthlyChart = null;
 let categoryChart = null;
 
-// Category options based on transaction type
-const categories = {
-    income: [
-        'Salary', 'Freelance', 'Business', 'Investments', 
-        'Rental Income', 'Gifts', 'Other Income'
-    ],
-    expense: [
-        'Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities',
-        'Entertainment', 'Healthcare', 'Travel', 'Education',
-        'Groceries', 'Rent/Mortgage', 'Insurance', 'Other Expenses'
-    ]
+// Category options loaded from database
+let categories = {
+    income: [],
+    expense: []
 };
 
+// Load categories from API
+async function loadCategories() {
+    try {
+        const response = await fetch('/api/categories');
+        const data = await response.json();
+        categories.income = data.filter(cat => cat.type === 'income').map(cat => cat.name);
+        categories.expense = data.filter(cat => cat.type === 'expense').map(cat => cat.name);
+        return categories;
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        // Fallback to default categories if API fails
+        categories = {
+            income: ['Salary', 'Freelance', 'Business', 'Investments', 'Rental Income', 'Gifts', 'Other Income'],
+            expense: ['Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities', 'Entertainment', 'Healthcare', 'Travel', 'Education', 'Groceries', 'Rent/Mortgage', 'Insurance', 'Other Expenses']
+        };
+        return categories;
+    }
+}
+
 // Initialize dashboard when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     const currentPage = window.location.pathname;
+    
+    // Initialize theme
+    initializeTheme();
+    
+    // Load categories first and wait for completion
+    await loadCategories();
     
     if (currentPage === '/' || currentPage.includes('index')) {
         initializeDashboard();
+        initializeEditModal();
     } else if (currentPage.includes('add')) {
         initializeAddTransaction();
+    } else if (currentPage.includes('categories')) {
+        initializeCategoriesPage();
     }
 });
+
+// Initialize edit modal functionality
+function initializeEditModal() {
+    const editTypeSelect = document.getElementById('edit-type');
+    const editForm = document.getElementById('edit-transaction-form');
+    
+    if (editTypeSelect) {
+        editTypeSelect.addEventListener('change', function() {
+            updateEditCategoryOptions(this.value, '');
+        });
+    }
+    
+    if (editForm) {
+        editForm.addEventListener('submit', handleEditTransactionSubmit);
+    }
+}
 
 // Dashboard Functions
 function initializeDashboard() {
@@ -92,25 +129,71 @@ function displayTransactions(transactions) {
     const tbody = document.getElementById('transactions-table');
     
     if (transactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No transactions found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No transactions found</td></tr>';
         return;
     }
     
-    tbody.innerHTML = transactions.map(transaction => `
-        <tr>
-            <td>${formatDate(transaction.date)}</td>
-            <td>${transaction.category}</td>
-            <td>
-                <span class="badge badge-${transaction.type}">
-                    ${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
-                </span>
-            </td>
-            <td class="${transaction.type === 'income' ? 'text-success' : 'text-danger'}">
-                ${transaction.type === 'income' ? '+' : '-'}${formatCurrency(transaction.amount)}
-            </td>
-            <td>${transaction.notes || '-'}</td>
-        </tr>
-    `).join('');
+    // Clear existing content
+    tbody.innerHTML = '';
+    
+    // Create rows safely using DOM APIs
+    transactions.forEach(transaction => {
+        const row = document.createElement('tr');
+        
+        // Date column
+        const dateCell = document.createElement('td');
+        dateCell.textContent = formatDate(transaction.date);
+        row.appendChild(dateCell);
+        
+        // Category column (safe text content)
+        const categoryCell = document.createElement('td');
+        categoryCell.textContent = transaction.category;
+        row.appendChild(categoryCell);
+        
+        // Type column
+        const typeCell = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = `badge badge-${transaction.type}`;
+        badge.textContent = transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1);
+        typeCell.appendChild(badge);
+        row.appendChild(typeCell);
+        
+        // Amount column
+        const amountCell = document.createElement('td');
+        amountCell.className = transaction.type === 'income' ? 'text-success' : 'text-danger';
+        amountCell.textContent = `${transaction.type === 'income' ? '+' : '-'}${formatCurrency(transaction.amount)}`;
+        row.appendChild(amountCell);
+        
+        // Notes column (safe text content)
+        const notesCell = document.createElement('td');
+        notesCell.textContent = transaction.notes || '-';
+        row.appendChild(notesCell);
+        
+        // Actions column
+        const actionsCell = document.createElement('td');
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'btn-group';
+        btnGroup.setAttribute('role', 'group');
+        
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'btn btn-sm btn-outline-primary';
+        editBtn.onclick = () => editTransaction(transaction.id);
+        editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
+        btnGroup.appendChild(editBtn);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'btn btn-sm btn-outline-danger';
+        deleteBtn.onclick = () => deleteTransaction(transaction.id);
+        deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+        btnGroup.appendChild(deleteBtn);
+        
+        actionsCell.appendChild(btnGroup);
+        row.appendChild(actionsCell);
+        
+        tbody.appendChild(row);
+    });
 }
 
 function loadCharts() {
@@ -142,6 +225,10 @@ function createMonthlyChart(data) {
         monthlyChart.destroy();
     }
     
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const textColor = currentTheme === 'dark' ? '#f8f9fa' : '#212529';
+    const gridColor = currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    
     monthlyChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -171,12 +258,24 @@ function createMonthlyChart(data) {
                 }
             },
             scales: {
+                x: {
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: gridColor
+                    }
+                },
                 y: {
                     beginAtZero: true,
                     ticks: {
+                        color: textColor,
                         callback: function(value) {
                             return '$' + value.toFixed(2);
                         }
+                    },
+                    grid: {
+                        color: gridColor
                     }
                 }
             },
@@ -192,7 +291,8 @@ function createMonthlyChart(data) {
                     position: 'top',
                     labels: {
                         padding: 20,
-                        usePointStyle: true
+                        usePointStyle: true,
+                        color: textColor
                     }
                 }
             }
@@ -229,6 +329,10 @@ function createCategoryChart(data) {
         return;
     }
     
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const textColor = currentTheme === 'dark' ? '#f8f9fa' : '#212529';
+    const borderColor = currentTheme === 'dark' ? '#343a40' : '#ffffff';
+    
     const colors = [
         '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
         '#9966FF', '#FF9F40', '#FF6384', '#36A2EB'
@@ -241,7 +345,7 @@ function createCategoryChart(data) {
             datasets: [{
                 data: data.data,
                 backgroundColor: colors.slice(0, data.labels.length),
-                borderColor: '#ffffff',
+                borderColor: borderColor,
                 borderWidth: 2
             }]
         },
@@ -270,6 +374,7 @@ function createCategoryChart(data) {
                     labels: {
                         padding: 15,
                         usePointStyle: true,
+                        color: textColor,
                         font: {
                             size: 11
                         }
@@ -307,6 +412,169 @@ function initializeAddTransaction() {
     if (form) {
         form.addEventListener('submit', handleTransactionSubmit);
     }
+}
+
+// Edit Transaction Functions
+function editTransaction(transactionId) {
+    // Fetch transaction details
+    fetch(`/api/transactions/${transactionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showErrorToast(data.error);
+                return;
+            }
+            
+            // Populate edit form
+            document.getElementById('edit-transaction-id').value = data.id;
+            document.getElementById('edit-amount').value = data.amount;
+            document.getElementById('edit-type').value = data.type;
+            document.getElementById('edit-date').value = data.date;
+            document.getElementById('edit-notes').value = data.notes || '';
+            
+            // Update category options based on type
+            updateEditCategoryOptions(data.type, data.category);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editTransactionModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error fetching transaction:', error);
+            showErrorToast('Error loading transaction details');
+        });
+}
+
+function updateEditCategoryOptions(selectedType, selectedCategory) {
+    const categorySelect = document.getElementById('edit-category');
+    categorySelect.innerHTML = '<option value="">Select category...</option>';
+    
+    if (selectedType && categories[selectedType]) {
+        categories[selectedType].forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            if (category === selectedCategory) {
+                option.selected = true;
+            }
+            categorySelect.appendChild(option);
+        });
+    }
+}
+
+// Delete Transaction Functions
+function deleteTransaction(transactionId) {
+    // Fetch transaction details for confirmation
+    fetch(`/api/transactions/${transactionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showErrorToast(data.error);
+                return;
+            }
+            
+            // Show transaction details in delete modal
+            const detailsDiv = document.getElementById('delete-transaction-details');
+            detailsDiv.innerHTML = `
+                <strong>Date:</strong> ${formatDate(data.date)}<br>
+                <strong>Category:</strong> ${data.category}<br>
+                <strong>Type:</strong> ${data.type.charAt(0).toUpperCase() + data.type.slice(1)}<br>
+                <strong>Amount:</strong> ${formatCurrency(data.amount)}<br>
+                <strong>Notes:</strong> ${data.notes || 'None'}
+            `;
+            
+            // Set up delete confirmation
+            const confirmBtn = document.getElementById('confirm-delete-btn');
+            confirmBtn.onclick = () => confirmDeleteTransaction(transactionId);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('deleteTransactionModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error fetching transaction:', error);
+            showErrorToast('Error loading transaction details');
+        });
+}
+
+function confirmDeleteTransaction(transactionId) {
+    fetch(`/api/transactions/${transactionId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessToast('Transaction deleted successfully');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteTransactionModal'));
+            modal.hide();
+            
+            // Refresh dashboard data
+            refreshDashboardData();
+        } else {
+            showErrorToast(data.error || 'Error deleting transaction');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting transaction:', error);
+        showErrorToast('Error deleting transaction');
+    });
+}
+
+// Handle edit transaction form submission
+function handleEditTransactionSubmit(e) {
+    e.preventDefault();
+    
+    const transactionId = document.getElementById('edit-transaction-id').value;
+    const transactionData = {
+        amount: parseFloat(document.getElementById('edit-amount').value),
+        type: document.getElementById('edit-type').value,
+        category: document.getElementById('edit-category').value,
+        date: document.getElementById('edit-date').value,
+        notes: document.getElementById('edit-notes').value || ''
+    };
+    
+    // Validate data
+    if (!transactionData.amount || !transactionData.type || !transactionData.category || !transactionData.date) {
+        showErrorToast('Please fill in all required fields');
+        return;
+    }
+    
+    // Submit updated transaction
+    fetch(`/api/transactions/${transactionId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(transactionData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessToast('Transaction updated successfully');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editTransactionModal'));
+            modal.hide();
+            
+            // Refresh dashboard data
+            refreshDashboardData();
+        } else {
+            showErrorToast(data.error || 'Error updating transaction');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating transaction:', error);
+        showErrorToast('Error updating transaction');
+    });
+}
+
+// Refresh all dashboard data
+function refreshDashboardData() {
+    loadSummaryData();
+    loadTransactions();
+    loadCharts();
 }
 
 function updateCategoryOptions() {
@@ -375,7 +643,11 @@ function handleTransactionSubmit(e) {
 }
 
 // Toast notification functions
-function showSuccessToast() {
+function showSuccessToast(message = 'Operation completed successfully!') {
+    const successMessageEl = document.getElementById('success-message');
+    if (successMessageEl) {
+        successMessageEl.textContent = message;
+    }
     const toast = new bootstrap.Toast(document.getElementById('success-toast'));
     toast.show();
 }
@@ -402,5 +674,121 @@ function formatDate(dateString) {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
+    });
+}
+
+// Theme Management Functions
+function initializeTheme() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    
+    // Apply saved theme
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+    
+    // Add event listener for theme toggle
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+    
+    // Listen for theme changes to update charts
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                // Re-render charts when theme changes
+                if (monthlyChart || categoryChart) {
+                    setTimeout(() => loadCharts(), 100); // Small delay to ensure theme CSS has applied
+                }
+            }
+        });
+    });
+    
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
+    });
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcon(newTheme);
+}
+
+function updateThemeIcon(theme) {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        const icon = themeToggle.querySelector('i');
+        if (theme === 'dark') {
+            icon.className = 'bi bi-sun-fill';
+            themeToggle.title = 'Switch to light mode';
+        } else {
+            icon.className = 'bi bi-moon-fill';
+            themeToggle.title = 'Switch to dark mode';
+        }
+    }
+}
+
+// CSV Import/Export Functions
+function exportCSV() {
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
+    
+    let url = '/api/export/csv';
+    if (startDate && endDate) {
+        url += `?start_date=${startDate}&end_date=${endDate}`;
+    }
+    
+    // Create invisible link and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showSuccessToast('CSV export started. Check your downloads folder.');
+}
+
+function importCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Show loading state
+    const importBtn = document.querySelector('button[onclick*="csv-import"]');
+    const originalText = importBtn.innerHTML;
+    importBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Importing...';
+    importBtn.disabled = true;
+    
+    fetch('/api/import/csv', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessToast(data.message);
+            refreshDashboardData(); // Reload all data
+        } else {
+            showErrorToast(data.error || 'Error importing CSV file');
+        }
+    })
+    .catch(error => {
+        console.error('Error importing CSV:', error);
+        showErrorToast('Error importing CSV file');
+    })
+    .finally(() => {
+        // Reset button state
+        importBtn.innerHTML = originalText;
+        importBtn.disabled = false;
+        
+        // Reset file input
+        event.target.value = '';
     });
 }

@@ -7,12 +7,58 @@
     --warning-color: #ffc107;
     --info-color: #0dcaf0;
     --light-bg: #f8f9fa;
+    
+    /* Light theme variables */
+    --bg-color: #f8f9fa;
+    --text-color: #212529;
+    --card-bg: #ffffff;
+    --border-color: rgba(0, 0, 0, 0.125);
+    --navbar-bg: #0d6efd;
+    --navbar-text: #ffffff;
+}
+
+/* Dark theme variables */
+[data-theme="dark"] {
+    --bg-color: #212529;
+    --text-color: #f8f9fa;
+    --card-bg: #343a40;
+    --border-color: rgba(255, 255, 255, 0.125);
+    --navbar-bg: #1a1f24;
+    --navbar-text: #f8f9fa;
+    --light-bg: #212529;
 }
 
 body {
-    background-color: var(--light-bg);
+    background-color: var(--bg-color);
+    color: var(--text-color);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Navbar theming */
+.navbar-dark {
+    background-color: var(--navbar-bg) !important;
+}
+
+.navbar-dark .navbar-nav .nav-link {
+    color: var(--navbar-text) !important;
+}
+
+.navbar-dark .navbar-brand {
+    color: var(--navbar-text) !important;
+}
+
+/* Theme toggle button */
+#theme-toggle {
+    color: var(--navbar-text) !important;
+    border: none;
+    background: none;
+    padding: 0.5rem;
+}
+
+#theme-toggle:hover {
+    color: rgba(255, 255, 255, 0.75) !important;
 }
 
 /* Container and Layout Improvements */
@@ -63,9 +109,10 @@ body {
 }
 
 .card-header {
-    background-color: white;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
     font-weight: 600;
+    color: var(--text-color);
 }
 
 /* Summary Cards */
@@ -154,6 +201,20 @@ body {
     margin-bottom: 0;
     min-width: 100%;
     white-space: nowrap;
+    color: var(--text-color);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > td {
+    background-color: var(--border-color);
+}
+
+.table th {
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+.table td {
+    border-color: var(--border-color);
 }
 
 /* Prevent horizontal scroll issues */
@@ -170,10 +231,12 @@ body {
 /* Card adjustments for small screens */
 .card {
     margin-bottom: 1rem;
-    border: none;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    color: var(--text-color);
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     border-radius: 0.5rem;
-    transition: box-shadow 0.15s ease-in-out;
+    transition: all 0.3s ease;
     overflow: hidden;
 }
 
