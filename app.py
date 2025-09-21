@@ -10,23 +10,19 @@ import io
 # Get the directory of the current script for absolute paths
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-# Debug paths for deployment
-print(f"Base directory: {basedir}")
-print(f"Template folder path: {os.path.join(basedir, 'templates')}")
-print(f"Templates exist: {os.path.exists(os.path.join(basedir, 'templates'))}")
-if os.path.exists(os.path.join(basedir, 'templates')):
-    print(f"Template files: {os.listdir(os.path.join(basedir, 'templates'))}")
-
 app = Flask(__name__, 
             template_folder=os.path.join(basedir, 'templates'),
             static_folder=os.path.join(basedir, 'static'))
+
+# Configuration from environment variables
 app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET', 'dev-secret-key')
+app.config['APP_NAME'] = os.environ.get('APP_NAME', 'FinTrack')
+app.config['APP_VERSION'] = os.environ.get('APP_VERSION', '1.0.0')
 
-# Verify Flask found the templates
-print(f"Flask template folder: {app.template_folder}")
-print(f"Flask static folder: {app.static_folder}")
-
-DATABASE = os.path.join(basedir, 'finance.db')
+# Database configuration
+DATABASE = os.environ.get('DATABASE_PATH', os.path.join(basedir, 'finance.db'))
+if not os.path.isabs(DATABASE):
+    DATABASE = os.path.join(basedir, DATABASE)
 
 def init_db():
     """Initialize the SQLite database"""
@@ -88,20 +84,7 @@ def get_db_connection():
 @app.route('/')
 def dashboard():
     """Main dashboard page"""
-    try:
-        return render_template('index.html')
-    except Exception as e:
-        print(f"Template error: {e}")
-        print(f"Current working directory: {os.getcwd()}")
-        print(f"Flask template folder: {app.template_folder}")
-        if app.template_folder:
-            print(f"Template folder exists: {os.path.exists(app.template_folder)}")
-            if os.path.exists(app.template_folder):
-                print(f"Files in template folder: {os.listdir(app.template_folder)}")
-        else:
-            print("Flask template folder is None!")
-        # Return a basic response so we can see the error in logs
-        return f"Template error: {e}. Check logs for details.", 500
+    return render_template('index.html')
 
 @app.route('/add')
 def add_transaction_page():
@@ -563,4 +546,10 @@ def import_csv():
 
 if __name__ == '__main__':
     init_db()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    
+    # Get Flask configuration from environment variables
+    flask_host = os.environ.get('FLASK_HOST', '0.0.0.0')
+    flask_port = int(os.environ.get('FLASK_PORT', 5000))
+    flask_debug = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
+    
+    app.run(host=flask_host, port=flask_port, debug=flask_debug)
