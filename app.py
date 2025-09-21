@@ -10,10 +10,21 @@ import io
 # Get the directory of the current script for absolute paths
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+# Debug paths for deployment
+print(f"Base directory: {basedir}")
+print(f"Template folder path: {os.path.join(basedir, 'templates')}")
+print(f"Templates exist: {os.path.exists(os.path.join(basedir, 'templates'))}")
+if os.path.exists(os.path.join(basedir, 'templates')):
+    print(f"Template files: {os.listdir(os.path.join(basedir, 'templates'))}")
+
 app = Flask(__name__, 
             template_folder=os.path.join(basedir, 'templates'),
             static_folder=os.path.join(basedir, 'static'))
 app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET', 'dev-secret-key')
+
+# Verify Flask found the templates
+print(f"Flask template folder: {app.template_folder}")
+print(f"Flask static folder: {app.static_folder}")
 
 DATABASE = os.path.join(basedir, 'finance.db')
 
@@ -77,7 +88,20 @@ def get_db_connection():
 @app.route('/')
 def dashboard():
     """Main dashboard page"""
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        print(f"Template error: {e}")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Flask template folder: {app.template_folder}")
+        if app.template_folder:
+            print(f"Template folder exists: {os.path.exists(app.template_folder)}")
+            if os.path.exists(app.template_folder):
+                print(f"Files in template folder: {os.listdir(app.template_folder)}")
+        else:
+            print("Flask template folder is None!")
+        # Return a basic response so we can see the error in logs
+        return f"Template error: {e}. Check logs for details.", 500
 
 @app.route('/add')
 def add_transaction_page():
