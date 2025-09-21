@@ -12,6 +12,38 @@
 body {
     background-color: var(--light-bg);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow-x: hidden;
+}
+
+/* Container and Layout Improvements */
+.container {
+    max-width: 100%;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+@media (min-width: 576px) {
+    .container {
+        max-width: 540px;
+    }
+}
+
+@media (min-width: 768px) {
+    .container {
+        max-width: 720px;
+    }
+}
+
+@media (min-width: 992px) {
+    .container {
+        max-width: 960px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1140px;
+    }
 }
 
 .navbar-brand {
@@ -99,11 +131,56 @@ body {
     background-color: var(--danger-color);
 }
 
-/* Chart Container */
+/* Chart Container - Improved Responsiveness */
 .chart-container {
     position: relative;
     height: 300px;
     width: 100%;
+}
+
+#monthly-chart, #category-chart {
+    max-width: 100%;
+    height: auto !important;
+}
+
+/* Table Responsiveness */
+.table-responsive {
+    border: none;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table {
+    margin-bottom: 0;
+    min-width: 100%;
+    white-space: nowrap;
+}
+
+/* Prevent horizontal scroll issues */
+.row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.col-md-4, .col-md-6, .col-md-8, .col-12 {
+    padding-left: 7.5px;
+    padding-right: 7.5px;
+}
+
+/* Card adjustments for small screens */
+.card {
+    margin-bottom: 1rem;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 0.5rem;
+    transition: box-shadow 0.15s ease-in-out;
+    overflow: hidden;
+}
+
+.card-body {
+    padding: 1rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* Loading Spinner */
@@ -112,7 +189,7 @@ body {
     height: 1rem;
 }
 
-/* Responsive Adjustments */
+/* Enhanced Responsive Adjustments */
 @media (max-width: 768px) {
     .navbar-nav {
         text-align: center;
@@ -124,6 +201,55 @@ body {
     
     .fs-1 {
         font-size: 2rem !important;
+    }
+    
+    /* Make charts stack on mobile */
+    .col-md-8, .col-md-4 {
+        margin-bottom: 1rem;
+    }
+    
+    /* Smaller margins on mobile */
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    /* Better spacing for mobile */
+    .my-4 {
+        margin-top: 1.5rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    /* Adjust table text size for better mobile readability */
+    .table td, .table th {
+        font-size: 0.875rem;
+        padding: 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .card-body h3 {
+        font-size: 1.25rem;
+    }
+    
+    .fs-1 {
+        font-size: 1.5rem !important;
+    }
+    
+    /* Extra small screen adjustments */
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+    
+    .container {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    /* Stack form elements on very small screens */
+    .col-md-4 .form-control,
+    .col-md-4 .btn {
+        margin-bottom: 0.5rem;
     }
 }
 

@@ -163,6 +163,13 @@ function createMonthlyChart(data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            aspectRatio: 2,
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10
+                }
+            },
             scales: {
                 y: {
                     beginAtZero: true,
@@ -182,7 +189,11 @@ function createMonthlyChart(data) {
                     }
                 },
                 legend: {
-                    position: 'top'
+                    position: 'top',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
                 }
             }
         }
@@ -237,6 +248,13 @@ function createCategoryChart(data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            aspectRatio: 1,
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10
+                }
+            },
             plugins: {
                 tooltip: {
                     callbacks: {
@@ -248,7 +266,14 @@ function createCategoryChart(data) {
                     }
                 },
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true,
+                        font: {
+                            size: 11
+                        }
+                    }
                 }
             }
         }

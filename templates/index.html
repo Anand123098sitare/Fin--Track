@@ -56,17 +56,17 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Filter Transactions</h5>
-                <div class="row">
-                    <div class="col-md-4">
+                <div class="row g-3">
+                    <div class="col-sm-6 col-lg-4">
                         <label for="start-date" class="form-label">Start Date</label>
                         <input type="date" class="form-control" id="start-date">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-sm-6 col-lg-4">
                         <label for="end-date" class="form-label">End Date</label>
                         <input type="date" class="form-control" id="end-date">
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">&nbsp;</label>
+                    <div class="col-12 col-lg-4">
+                        <label class="form-label d-none d-lg-block">&nbsp;</label>
                         <div class="d-grid">
                             <button class="btn btn-primary" onclick="applyDateFilter()">Apply Filter</button>
                         </div>
@@ -79,19 +79,23 @@
 
 <!-- Charts -->
 <div class="row mb-4">
-    <div class="col-md-8">
+    <div class="col-lg-8 col-md-12 mb-3 mb-lg-0">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Monthly Income vs Expenses</h5>
-                <canvas id="monthly-chart"></canvas>
+                <div class="chart-container">
+                    <canvas id="monthly-chart"></canvas>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-lg-4 col-md-12">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Expense Categories</h5>
-                <canvas id="category-chart"></canvas>
+                <div class="chart-container">
+                    <canvas id="category-chart"></canvas>
+                </div>
             </div>
         </div>
     </div>
