@@ -131,11 +131,20 @@ def summary_api():
 @app.route('/api/monthly-data')
 def monthly_data_api():
     """API endpoint for monthly income vs expense data"""
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
     conn = get_db_connection()
-    transactions = conn.execute('''
-        SELECT type, amount, date FROM transactions 
-        ORDER BY date
-    ''').fetchall()
+    query = 'SELECT type, amount, date FROM transactions'
+    params = []
+    
+    if start_date and end_date:
+        query += ' WHERE date BETWEEN ? AND ?'
+        params = [start_date, end_date]
+    
+    query += ' ORDER BY date'
+    
+    transactions = conn.execute(query, params).fetchall()
     conn.close()
     
     monthly_data = defaultdict(lambda: {'income': 0, 'expense': 0})

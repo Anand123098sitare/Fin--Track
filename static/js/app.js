@@ -118,8 +118,13 @@ function loadCharts() {
     loadCategoryChart();
 }
 
-function loadMonthlyChart() {
-    fetch('/api/monthly-data')
+function loadMonthlyChart(startDate = '', endDate = '') {
+    let url = '/api/monthly-data';
+    if (startDate && endDate) {
+        url += `?start_date=${startDate}&end_date=${endDate}`;
+    }
+    
+    fetch(url)
         .then(response => response.json())
         .then(data => {
             createMonthlyChart(data);
@@ -258,6 +263,7 @@ function applyDateFilter() {
     if (startDate && endDate) {
         loadSummaryData(startDate, endDate);
         loadTransactions(startDate, endDate);
+        loadMonthlyChart(startDate, endDate);
         loadCategoryChart(startDate, endDate);
     } else {
         alert('Please select both start and end dates');
